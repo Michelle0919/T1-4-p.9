@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>This & That 教室搶答大賽</title>
+    <style>
+        /* 基本重置與滿版設定 */
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html {
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            overflow: hidden; /* 嚴格禁止捲動 */
+            background-color: #F8F9FA;
+            color: #333;
+        }
+
+        /* 遊戲容器，滿版 1920x1080 比例設計 */
+        #app {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- 設定畫面 --- */
+        #setup-screen {
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            height: 100%; background-color: #E3F2FD;
+            z-index: 100; position: absolute; width: 100%;
+        }
+        .setup-title { font-size: 4vw; color: #1565C0; font-weight: bold; margin-bottom: 2vh; }
+        .setup-box {
+            background: white; padding: 4vh 4vw; border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center;
+        }
+        .setup-box label { font-size: 2vw; display: block; margin-bottom: 2vh; }
+        .setup-box input {
+            font-size: 3vw; padding: 1vh 2vw; width: 15vw;
+            text-align: center; border: 4px solid #90CAF9; border-radius: 10px;
+            margin-bottom: 3vh; outline: none;
+        }
+        .btn-start {
+            font-size: 2.5vw; padding: 2vh 4vw; background-color: #4CAF50;
+            color: white; border: none; border-radius: 15px; cursor: pointer;
+            font-weight: bold; transition: background 0.2s;
+        }
+        .btn-start:hover { background-color: #388E3C; }
+
+        /* --- 遊戲主畫面 --- */
+        #game-screen {
+            display: none; flex-direction: column; height: 100%; width: 100%;
+        }
+
+        /* 頂部資訊列 (回合、計時器、目前隊伍) */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 2vh 4vw; background-color: #1976D2; color: white;
+            height: 12vh;
+        }
+        .info-level { font-size: 2.5vw; font-weight: bold; }
+        .info-team { font-size: 3vw; font-weight: bold; background: #FFC107; color: #333; padding: 0.5vh 2vw; border-radius: 50px; }
+        
+        .timer-container {
+            display: flex; align-items: center; font-size: 3.5vw; font-weight: bold;
+            background: rgba(0,0,0,0.2); padding: 0.5vh 2vw; border-radius: 15px;
+        }
+        .timer-warning { color: #FF5252; animation: blink 0.5s infinite alternate; }
+        @keyframes blink { from { opacity: 1; text-shadow: 0 0 20px red; } to { opacity: 0.5; } }
+
+        /* 題目視覺區 (人物與距離) */
+        .visual-area {
+            flex-grow: 1; display: flex; align-items: center; justify-content: center;
+            background-color: white; border-bottom: 5px solid #E0E0E0;
+            padding: 0 5vw; position: relative;
+        }
+        
+        .scene {
+            display: flex; align-items: center; justify-content: flex-start;
+            width: 80%; height: 60%; background: #F5F5F5;
+            border: 4px dashed #BDBDBD; border-radius: 20px; padding: 0 3vw;
+        }
+
+        .person { font-size: 8vw; }
+        .pointer { font-size: 6vw; margin-left: 1vw; }
+        .distance-space { transition: width 0.3s; }
+
+        /* 物品圖示容器，用於定位標籤 */
+        .item-icon-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* 物品 Emoji 樣式 */
+        .item-emoji {
+            font-size: 10vw;
+            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.2));
+        }
+
+        /* 物品英文標籤樣式，疊加在 Emoji 上方 */
+        .item-label {
+            position: absolute;
+            top: -2vh; /* 定位在 Emoji 上方 */
+            font-size: 3vw; /* 大字體 */
+            font-weight: bold;
+            color: white; /* 清晰顏色 */
+            background-color: rgba(0, 0, 0, 0.7); /* 半透明背景 */
+            padding: 0.5vh 1vw; /* 填充 */
+            border-radius: 5px;
+            text-transform: capitalize; /* 首字母大寫 */
+            white-space: nowrap; /* 防止換行 */
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); /* 陰影，增加清晰度 */
+        }
+        
+        .distance-close { width: 2vw; } /* This */
+        .distance-far { width: 40vw; border-bottom: 6px dotted #90CAF9; margin: 0 2vw; height: 50%; } /* That */
+
+        /* 選項按鈕區 */
+        .options-area {
+            height: 25vh; display: grid; grid-template-columns: 1fr 1fr;
+            gap: 2vw; padding: 2vh 4vw; background-color: #ECEFF1;
+        }
+        .option-btn {
+            font-size: 2.5vw; font-weight: bold; color: #333;
+            background-color: white; border: 4px solid #B0BEC5;
+            border-radius: 15px; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            transition: all 0.1s;
+        }
+        .option-btn:active { transform: scale(0.98); background-color: #E0F7FA; }
+        .option-btn.correct { background-color: #A5D6A7; border-color: #2E7D32; color: #1B5E20; }
+        .option-btn.wrong { background-color: #EF9A9A; border-color: #C62828; color: #B71C1C; }
+
+        /* 底部計分板 */
+        .scoreboard {
+            height: 12vh; background-color: #263238; color: white;
+            display: flex; justify-content: space-around; align-items: center;
+            padding: 0 2vw; overflow-x: auto;
+        }
+        .team-score {
+            font-size: 1.8vw; padding: 1vh 2vw; background: #37474F;
+            border-radius: 10px; min-width: 10vw; text-align: center;
+        }
+        .team-score.active-team { border: 3px solid #FFC107; background: #455A64; }
+
+        /* 提示覆蓋層 (答對/時間到) */
+        #overlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 50; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .overlay-msg { font-size: 6vw; font-weight: bold; margin-bottom: 2vh; }
+        .overlay-ans { font-size: 4vw; color: #1976D2; border-bottom: 5px solid #1976D2; padding-bottom: 1vh;}
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="setup-screen">
+        <div class="setup-title">This & That 教室搶答大賽</div>
+        <div class="setup-box">
+            <label for="team-count">請輸入參與組別數量 (1-26)</label>
+            <input type="number" id="team-count" min="1" max="26" value="3">
+            <br>
+            <button class="btn-start" onclick="initGame()">Start Game</button>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <div class="top-bar">
+            <div class="info-level" id="level-display">Level 1</div>
+            <div class="info-team" id="current-team-display">Team A's Turn</div>
+            <div class="timer-container">⏱️ <span id="time-left">20</span>s</div>
+        </div>
+
+        <div class="visual-area">
+            <div class="scene">
+                <div class="person">🧑‍🏫</div>
+                <div class="pointer" id="pointer-icon">👉</div>
+                <div class="distance-space" id="distance-space"></div>
+                <div class="item-icon-container" id="item-icon-container">
+                    <div class="item-emoji" id="item-emoji">🎒</div>
+                    <div class="item-label" id="item-label">backpack</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="options-area" id="options-area">
+            </div>
+
+        <div class="scoreboard" id="scoreboard">
+            </div>
+    </div>
+
+    <div id="overlay">
+        <div class="overlay-msg" id="overlay-msg">Time's Up!</div>
+        <div class="overlay-ans" id="overlay-ans">This is a book.</div>
+    </div>
+</div>
+
+<script>
+    // --- 單字庫設定 (已刪除 scissors) ---
+    const vocabList = [
+        { word: "backpack", article: "a", icon: "🎒" },
+        { word: "bookbag", article: "a", icon: "🎒" },
+        { word: "notebook", article: "a", icon: "📓" },
+        { word: "textbook", article: "a", icon: "📘" },
+        { word: "workbook", article: "a", icon: "📙" },
+        { word: "calculator", article: "a", icon: "🧮" },
+        { word: "ruler", article: "a", icon: "📏" },
+        { word: "pencil", article: "a", icon: "✏️" },
+        { word: "pen", article: "a", icon: "🖊️" },
+        { word: "eraser", article: "an", icon: "🧼" },
+        { word: "glue", article: "", icon: "🧴" }, // 不可數
+        { word: "paper", article: "", icon: "📄" }  // 不可數
+    ];
+
+    // --- 遊戲狀態 ---
+    let teams = [];
+    let currentTeamIndex = 0;
+    let currentRound = 1;
+    let timerInterval;
+    let timeLeft = 20;
+    let currentAnswer = "";
+    let isWaiting = false; // 是否在等待換題
+
+    const levelSettings = [
+        { minRound: 1, time: 20 },
+        { minRound: 3, time: 18 },
+        { minRound: 5, time: 16 },
+        { minRound: 7, time: 12 }
+    ];
+
+    const synth = window.speechSynthesis;
+
+    // --- 初始化遊戲 ---
+    function initGame() {
+        let count = parseInt(document.getElementById('team-count').value);
+        if (count < 1) count = 1;
+        if (count > 26) count = 26;
+
+        teams = [];
+        for (let i = 0; i < count; i++) {
+            teams.push({ name: `Team ${String.fromCharCode(65 + i)}`, score: 0 });
+        }
+
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'flex';
+        
+        currentTeamIndex = 0;
+        currentRound = 1;
+        updateScoreboard();
+        startTurn();
+    }
+
+    // --- 取得當前等級的時間設定 ---
+    function getCurrentLevelData() {
+        let currentLevelObj = levelSettings[0];
+        let levelNum = 1;
+        for (let i = 0; i < levelSettings.length; i++) {
+            if (currentRound >= levelSettings[i].minRound) {
+                currentLevelObj = levelSettings[i];
+                levelNum = i + 1;
+            }
+        }
+        return { time: currentLevelObj.time, level: levelNum };
+    }
+
+    // --- 開始新回合 ---
+    function startTurn() {
+        isWaiting = false;
+        clearInterval(timerInterval);
+        document.getElementById('overlay').style.display = 'none';
+        
+        let levelData = getCurrentLevelData();
+        timeLeft = levelData.time;
+        
+        // 更新頂部 UI
+        document.getElementById('level-display').innerText = `Level ${levelData.level}`;
+        document.getElementById('current-team-display').innerText = `${teams[currentTeamIndex].name}'s Turn`;
+        updateTimerDisplay();
+        updateScoreboard();
+
+        // 產生題目
+        generateQuestion();
+
+        // 啟動計時器
+        timerInterval = setInterval(countdown, 1000);
+    }
+
+    // --- 倒數計時邏輯 ---
+    function countdown() {
+        timeLeft--;
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            handleTimeUp();
+        }
+    }
+
+    function updateTimerDisplay() {
+        const timeEl = document.getElementById('time-left');
+        timeEl.innerText = timeLeft;
+        if (timeLeft <= 5) {
+            timeEl.classList.add('timer-warning');
+        } else {
+            timeEl.classList.remove('timer-warning');
+        }
+    }
+
+    // --- 產生題目與選項 ---
+    function generateQuestion() {
+        const isClose = Math.random() > 0.5;
+        const correctItem = vocabList[Math.floor(Math.random() * vocabList.length)];
+        
+        // 設定視覺距離
+        const spaceEl = document.getElementById('distance-space');
+        const pointerEl = document.getElementById('pointer-icon');
+        if (isClose) {
+            spaceEl.className = 'distance-space distance-close';
+            pointerEl.innerText = '👇';
+        } else {
+            spaceEl.className = 'distance-space distance-far';
+            pointerEl.innerText = '👉';
+        }
+
+        // 更新物品 Emoji 和英文字標籤
+        document.getElementById('item-emoji').innerText = correctItem.icon;
+        document.getElementById('item-label').innerText = correctItem.word;
+
+        // 建立正確句子
+        const distanceWord = isClose ? "This" : "That";
+        currentAnswer = `${distanceWord} is ${correctItem.article ? correctItem.article + " " : ""}${correctItem.word}.`;
+
+        // 建立選項
+        let options = [currentAnswer];
+        while (options.length < 4) {
+            let randDist = Math.random() > 0.5 ? "This" : "That";
+            let randItem = vocabList[Math.floor(Math.random() * vocabList.length)];
+            let wrongAns = `${randDist} is ${randItem.article ? randItem.article + " " : ""}${randItem.word}.`;
+            if (!options.includes(wrongAns)) {
+                options.push(wrongAns);
+            }
+        }
+        options.sort(() => Math.random() - 0.5);
+
+        // 渲染按鈕
+        const optionsArea = document.getElementById('options-area');
+        optionsArea.innerHTML = '';
+        options.forEach(opt => {
+            let btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            optionsArea.appendChild(btn);
+        });
+    }
+
+    // --- 檢查答案 ---
+    function checkAnswer(selected, btnElement) {
+        if (isWaiting) return;
+        isWaiting = true;
+        clearInterval(timerInterval);
+
+        if (selected === currentAnswer) {
+            // 答對時，唸出正確選項
+            speak(selected); 
+            btnElement.classList.add('correct');
+            teams[currentTeamIndex].score += 10;
+            showOverlay("✅ Correct!", currentAnswer, "#4CAF50");
+        } else {
+            // ★修改處：答錯時，強制唸出「正確的句子」
+            speak(currentAnswer); 
+            btnElement.classList.add('wrong');
+            // 標示出正確答案
+            Array.from(document.getElementsByClassName('option-btn')).forEach(btn => {
+                if(btn.innerText === currentAnswer) btn.classList.add('correct');
+            });
+            showOverlay("❌ Wrong!", currentAnswer, "#F44336");
+        }
+
+        setTimeout(nextTurn, 2500);
+    }
+
+    // --- 時間到處理 ---
+    function handleTimeUp() {
+        if (isWaiting) return;
+        isWaiting = true;
+        
+        // 時間到也一樣唸出正確答案
+        speak(currentAnswer);
+        
+        Array.from(document.getElementsByClassName('option-btn')).forEach(btn => {
+            if(btn.innerText === currentAnswer) btn.classList.add('correct');
+        });
+        
+        showOverlay("⏰ Time's Up!", currentAnswer, "#FF9800");
+        setTimeout(nextTurn, 2500);
+    }
+
+    // --- 顯示提示層 ---
+    function showOverlay(msg, ans, color) {
+        const overlay = document.getElementById('overlay');
+        const msgEl = document.getElementById('overlay-msg');
+        msgEl.innerText = msg;
+        msgEl.style.color = color;
+        document.getElementById('overlay-ans').innerText = ans;
+        overlay.style.display = 'flex';
+    }
+
+    // --- 換下一隊/下一回合 ---
+    function nextTurn() {
+        currentTeamIndex++;
+        if (currentTeamIndex >= teams.length) {
+            currentTeamIndex = 0;
+            currentRound++; // 所有隊伍都輪過一次，回合+1
+        }
+        startTurn();
+    }
+
+    // --- 更新底部計分板 ---
+    function updateScoreboard() {
+        const board = document.getElementById('scoreboard');
+        board.innerHTML = '';
+        teams.forEach((team, index) => {
+            let div = document.createElement('div');
+            div.className = `team-score ${index === currentTeamIndex ? 'active-team' : ''}`;
+            div.innerHTML = `<strong>${team.name}</strong><br>${team.score}`;
+            board.appendChild(div);
+        });
+    }
+
+    // --- 語音功能 ---
+    function speak(text) {
+        if (synth.speaking) synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.85; // 適合學生的稍慢語速
+        synth.speak(utterance);
+    }
+</script>
+
+</body>
+</html>
