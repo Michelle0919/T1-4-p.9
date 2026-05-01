@@ -97,6 +97,9 @@
         .item-emoji {
             font-size: 10vw;
             filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* 物品英文標籤樣式，疊加在 Emoji 上方 */
@@ -112,6 +115,7 @@
             text-transform: capitalize; /* 首字母大寫 */
             white-space: nowrap; /* 防止換行 */
             filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); /* 陰影，增加清晰度 */
+            z-index: 10;
         }
         
         .distance-close { width: 2vw; } /* This */
@@ -201,7 +205,7 @@
 </div>
 
 <script>
-    // --- 單字庫設定 (已刪除 scissors) ---
+    // --- 單字庫設定 ---
     const vocabList = [
         { word: "backpack", article: "a", icon: "🎒" },
         { word: "bookbag", article: "a", icon: "🎒" },
@@ -212,8 +216,8 @@
         { word: "ruler", article: "a", icon: "📏" },
         { word: "pencil", article: "a", icon: "✏️" },
         { word: "pen", article: "a", icon: "🖊️" },
-        { word: "eraser", article: "an", icon: "🧼" },
-        { word: "glue", article: "", icon: "🧴" }, // 不可數
+        { word: "eraser", article: "an", icon: "https://raw.githubusercontent.com/Michelle0919/T1-4-p.9/main/T1-4%20eraser.png" }, // 圖片
+        { word: "glue", article: "", icon: "https://raw.githubusercontent.com/Michelle0919/T1-4-p.9/main/Gemini_Generated_Image_gjraw2gjraw2gjra-removebg-preview.png" }, // 更新圖片
         { word: "paper", article: "", icon: "📄" }  // 不可數
     ];
 
@@ -327,8 +331,14 @@
             pointerEl.innerText = '👉';
         }
 
-        // 更新物品 Emoji 和英文字標籤
-        document.getElementById('item-emoji').innerText = correctItem.icon;
+        // 判斷要放入 Emoji 還是 圖片
+        const itemEmojiDiv = document.getElementById('item-emoji');
+        if (correctItem.icon.startsWith("http")) {
+            itemEmojiDiv.innerHTML = `<img src="${correctItem.icon}" style="width: 12vw; height: 12vw; object-fit: contain;">`;
+        } else {
+            itemEmojiDiv.innerHTML = correctItem.icon;
+        }
+        
         document.getElementById('item-label').innerText = correctItem.word;
 
         // 建立正確句子
@@ -372,7 +382,6 @@
             teams[currentTeamIndex].score += 10;
             showOverlay("✅ Correct!", currentAnswer, "#4CAF50");
         } else {
-            // ★修改處：答錯時，強制唸出「正確的句子」
             speak(currentAnswer); 
             btnElement.classList.add('wrong');
             // 標示出正確答案
@@ -390,7 +399,6 @@
         if (isWaiting) return;
         isWaiting = true;
         
-        // 時間到也一樣唸出正確答案
         speak(currentAnswer);
         
         Array.from(document.getElementsByClassName('option-btn')).forEach(btn => {
