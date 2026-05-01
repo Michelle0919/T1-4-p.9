@@ -76,8 +76,9 @@
         
         .scene {
             display: flex; align-items: center; justify-content: flex-start;
-            width: 80%; height: 60%; background: #F5F5F5;
-            border: 4px dashed #BDBDBD; border-radius: 20px; padding: 0 3vw;
+            /* 將寬高加大，提供更多顯示空間 */
+            width: 90%; height: 80%; background: #F5F5F5;
+            border: 4px dashed #BDBDBD; border-radius: 20px; padding: 0 5vw;
         }
 
         .person { font-size: 8vw; }
@@ -93,7 +94,7 @@
             position: relative;
         }
 
-        /* 物品 Emoji 樣式 */
+        /* 物品 Emoji/圖片 樣式 */
         .item-emoji {
             font-size: 10vw;
             filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.2));
@@ -102,19 +103,19 @@
             justify-content: center;
         }
 
-        /* 物品英文標籤樣式，疊加在 Emoji 上方 */
+        /* 物品英文標籤樣式：取消絕對定位，排在圖片上方 */
         .item-label {
-            position: absolute;
-            top: -2vh; /* 定位在 Emoji 上方 */
-            font-size: 3vw; /* 大字體 */
+            order: -1; /* 強制在 Flex 容器中排在圖片上面 */
+            margin-bottom: 1.5vh; /* 增加與圖片的距離，防止遮擋 */
+            font-size: 3vw; 
             font-weight: bold;
-            color: white; /* 清晰顏色 */
-            background-color: rgba(0, 0, 0, 0.7); /* 半透明背景 */
-            padding: 0.5vh 1vw; /* 填充 */
+            color: white; 
+            background-color: rgba(0, 0, 0, 0.7); 
+            padding: 0.5vh 1vw; 
             border-radius: 5px;
-            text-transform: capitalize; /* 首字母大寫 */
-            white-space: nowrap; /* 防止換行 */
-            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); /* 陰影，增加清晰度 */
+            text-transform: capitalize; 
+            white-space: nowrap; 
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); 
             z-index: 10;
         }
         
@@ -212,13 +213,13 @@
         { word: "notebook", article: "a", icon: "📓" },
         { word: "textbook", article: "a", icon: "📘" },
         { word: "workbook", article: "a", icon: "📙" },
-        { word: "calculator", article: "a", icon: "🧮" },
+        { word: "calculator", article: "a", icon: "https://raw.githubusercontent.com/Michelle0919/T1-4-p.9/main/%E8%A8%88%E7%AE%97%E6%A9%9F.png" },
         { word: "ruler", article: "a", icon: "📏" },
         { word: "pencil", article: "a", icon: "✏️" },
         { word: "pen", article: "a", icon: "🖊️" },
-        { word: "eraser", article: "an", icon: "https://raw.githubusercontent.com/Michelle0919/T1-4-p.9/main/T1-4%20eraser.png" }, // 圖片
-        { word: "glue", article: "", icon: "https://raw.githubusercontent.com/Michelle0919/T1-4-p.9/main/Gemini_Generated_Image_gjraw2gjraw2gjra-removebg-preview.png" }, // 更新圖片
-        { word: "paper", article: "", icon: "📄" }  // 不可數
+        { word: "eraser", article: "an", icon: "https://raw.githubusercontent.com/Michelle0919/T1-4-p.9/main/T1-4%20eraser.png" },
+        { word: "glue", article: "", icon: "https://raw.githubusercontent.com/Michelle0919/T1-4-p.9/main/Gemini_Generated_Image_gjraw2gjraw2gjra-removebg-preview.png" },
+        { word: "paper", article: "", icon: "📄" }
     ];
 
     // --- 遊戲狀態 ---
@@ -228,7 +229,7 @@
     let timerInterval;
     let timeLeft = 20;
     let currentAnswer = "";
-    let isWaiting = false; // 是否在等待換題
+    let isWaiting = false;
 
     const levelSettings = [
         { minRound: 1, time: 20 },
@@ -281,16 +282,12 @@
         let levelData = getCurrentLevelData();
         timeLeft = levelData.time;
         
-        // 更新頂部 UI
         document.getElementById('level-display').innerText = `Level ${levelData.level}`;
         document.getElementById('current-team-display').innerText = `${teams[currentTeamIndex].name}'s Turn`;
         updateTimerDisplay();
         updateScoreboard();
 
-        // 產生題目
         generateQuestion();
-
-        // 啟動計時器
         timerInterval = setInterval(countdown, 1000);
     }
 
@@ -320,7 +317,6 @@
         const isClose = Math.random() > 0.5;
         const correctItem = vocabList[Math.floor(Math.random() * vocabList.length)];
         
-        // 設定視覺距離
         const spaceEl = document.getElementById('distance-space');
         const pointerEl = document.getElementById('pointer-icon');
         if (isClose) {
@@ -331,7 +327,6 @@
             pointerEl.innerText = '👉';
         }
 
-        // 判斷要放入 Emoji 還是 圖片
         const itemEmojiDiv = document.getElementById('item-emoji');
         if (correctItem.icon.startsWith("http")) {
             itemEmojiDiv.innerHTML = `<img src="${correctItem.icon}" style="width: 12vw; height: 12vw; object-fit: contain;">`;
@@ -341,11 +336,9 @@
         
         document.getElementById('item-label').innerText = correctItem.word;
 
-        // 建立正確句子
         const distanceWord = isClose ? "This" : "That";
         currentAnswer = `${distanceWord} is ${correctItem.article ? correctItem.article + " " : ""}${correctItem.word}.`;
 
-        // 建立選項
         let options = [currentAnswer];
         while (options.length < 4) {
             let randDist = Math.random() > 0.5 ? "This" : "That";
@@ -357,7 +350,6 @@
         }
         options.sort(() => Math.random() - 0.5);
 
-        // 渲染按鈕
         const optionsArea = document.getElementById('options-area');
         optionsArea.innerHTML = '';
         options.forEach(opt => {
@@ -376,7 +368,6 @@
         clearInterval(timerInterval);
 
         if (selected === currentAnswer) {
-            // 答對時，唸出正確選項
             speak(selected); 
             btnElement.classList.add('correct');
             teams[currentTeamIndex].score += 10;
@@ -384,7 +375,6 @@
         } else {
             speak(currentAnswer); 
             btnElement.classList.add('wrong');
-            // 標示出正確答案
             Array.from(document.getElementsByClassName('option-btn')).forEach(btn => {
                 if(btn.innerText === currentAnswer) btn.classList.add('correct');
             });
@@ -424,7 +414,7 @@
         currentTeamIndex++;
         if (currentTeamIndex >= teams.length) {
             currentTeamIndex = 0;
-            currentRound++; // 所有隊伍都輪過一次，回合+1
+            currentRound++;
         }
         startTurn();
     }
@@ -446,7 +436,7 @@
         if (synth.speaking) synth.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
-        utterance.rate = 0.85; // 適合學生的稍慢語速
+        utterance.rate = 0.85;
         synth.speak(utterance);
     }
 </script>
